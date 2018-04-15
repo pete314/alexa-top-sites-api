@@ -157,7 +157,7 @@ public class TopSitesUpdater implements Runnable {
     protected boolean needsUpdate() {
         Date external = getExternalUpdateTime();
         Date internal = getInternalUpdateTime();
-
+        
         return internal.before(external);
     }
 

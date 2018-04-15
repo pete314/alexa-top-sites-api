@@ -48,6 +48,7 @@ public class TopSitesUpdaterTest {
     protected static void clearCache(){
         try(Jedis jedis = JedisFactory.getInstance().newClient()){
             TopSitesUpdater instance = new TopSitesUpdater();
+            jedis.del(instance.CACHE_KEY_UPDATE_LAST_UPDATE);
             jedis.del(instance.CACHE_KEY_UPDATE);
         }
     }
