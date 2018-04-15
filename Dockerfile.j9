@@ -1,0 +1,50 @@
+FROM dekstroza/openjdk9-alpine as packager
+
+ENV JAVA_HOME=/opt/jdk-9
+ENV PATH="$PATH:$JAVA_HOME/bin"
+
+RUN apk update && \
+    apk add --no-cache bash
+
+COPY scripts/get_unique_jdeps.sh /opt
+COPY target/alexa-top-api-1.0.jar /opt
+
+# First stage: JDK 9 with modules required for app
+RUN export APP_JDEPS=$(bash /opt/get_unique_jdeps.sh /opt/alexa-top-api-1.0.jar) && \
+    /opt/jdk-9/bin/jlink \
+    --module-path /opt/jdk-9/jmods \
+    --verbose \
+    --add-modules $APP_JDEPS \
+    --compress 2 \
+    --no-header-files \
+    --output /opt/jdk-9-minimal
+
+# Second stage, add minimal jdk and the app
+FROM alpine:3.6
+
+# Update base container
+RUN apk update && apk add ca-certificates && update-ca-certificates && apk add openssl
+
+# Creaet opt folder
+RUN mkdir opt
+
+COPY --from=packager /opt/jdk-9-minimal /opt/jdk-9-minimal
+
+# Move the application into container
+RUN mkdir -p /opt/alexa-top-api/lib && \
+    mkdir -p /opt/alexa-top-api/config && \
+    apk update && \
+    apk add java-cacerts
+
+ADD target/lib /opt/alexa-top-api/lib
+ADD ./config /opt/alexa-top-api/config
+
+COPY target/alexa-top-api-1.0.jar /opt/alexa-top-api
+
+ENV JAVA_HOME=/opt/jdk-9-minimal
+ENV PATH="$PATH:$JAVA_HOME/bin"
+ENV KEY_STORE_PATH=/opt/alexa-top-api/config/selfsigned.jks
+ENV THRUST_STORE_PATH=/etc/ssl/certs/java/cacerts
+
+EXPOSE 8888 4443
+CMD java -jar /opt/alexa-top-api/alexa-top-api-1.0.jar

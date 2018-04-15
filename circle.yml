@@ -1,0 +1,65 @@
+version: 2
+jobs:
+  build:
+    
+    parallelism: 1
+    
+    working_directory: ~/alexa-top-sites-api
+
+    environment:
+      # Customize the JVM maximum heap limit
+      MAVEN_OPTS: -Xmx3200m
+      # Set the trust store path for the runtime
+      THRUST_STORE_PATH: /etc/ssl/certs/java/cacerts
+
+    docker:
+      - image: circleci/openjdk:8-jdk-browsers
+      - image: redis
+
+    steps:
+
+      - checkout
+
+      - restore_cache:
+          keys: 
+          - alexa-top-sites-api-{{ checksum "pom.xml" }}
+          # fallback to using the latest cache if no exact match is found
+          - alexa-top-sites-api-
+     
+      - run:
+          name: Pull test data
+          command: wget http://s3.amazonaws.com/alexa-static/top-1m.csv.zip -P /tmp/ && sudo chmod 777 /tmp/top-1m.csv.zip
+
+      - run:
+          name: Get Java/Maven Dependencies
+          command: mvn --fail-never dependency:go-offline || true
+      
+      - save_cache:
+          name: Save maven cache
+          paths:
+            - ~/.m2
+          key: alexa-top-sites-api-{{ checksum "pom.xml" }}
+      
+      - run:
+          name: Run integration test
+          command: mvn integration-test -f pom.xml
+      
+      - run:
+          name: Run test cases
+          command: "mvn surefire:test"
+
+      - run:
+          name: Save test results 
+          command: |
+            mkdir -p ~/artifacts/ 
+            find . -type f -regex ".*/target/surefire-reports/.*xml" -exec cp {} ~/artifacts/ \;
+          when: always
+          
+      - store_test_results:
+          name: Store test results
+          path: ~/artifacts
+          
+      - store_artifacts:
+          name: Store artifacts
+          path: ~/artifacts 
+
