@@ -1,7 +1,8 @@
 Build status: [![CircleCI](https://circleci.com/gh/pete314/alexa-top-sites-api/tree/master.svg?style=svg)](https://circleci.com/gh/pete314/alexa-top-sites-api/tree/master)
 
 # Introduction
-Undertow REST API for Alexa top sites, built to showcase implementation examples of communly used REST functionality in Java runtime.
+This project is built to showcase implementation examples of communly used REST functionality in Java runtime with Undertow JAX-RS server, Redis and Docker.
+The project itself enables the paginated lookup for the Alexa Top 1 Million sites, with additional filtering by TLD.
 
 # Requirements
 Java 1.8+
